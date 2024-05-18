@@ -1,0 +1,13 @@
+{
+  "token": "YOUR_BEARER_TOKEN_HERE",
+  "nodes": [
+      {
+          "walletID": "sample_wallet_id_1",
+          "walletNodeName": "Sample Wallet Node 1"
+      },
+      {
+          "walletID": "sample_wallet_id_2",
+          "walletNodeName": "Sample Wallet Node 2"
+      }
+  ]
+}

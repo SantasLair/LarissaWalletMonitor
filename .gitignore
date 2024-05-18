@@ -1,0 +1,3 @@
+.vs
+*.pyc
+config.private.json

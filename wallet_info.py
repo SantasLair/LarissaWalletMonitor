@@ -22,7 +22,7 @@ class WalletInfo:
         self.previous_earning = self.current_earning
         self.current_earning = new_earning
 
-    def display_earnings(self) -> None:
+    def display_earnings(self, width: int) -> None:
         """Display the earnings in a formatted way."""
         name_width = 30
         name_str = self.wallet_name.ljust(name_width)
@@ -35,4 +35,4 @@ class WalletInfo:
             else:
                 output += gain_str
         
-        print(output)
+        print(output.center(width))

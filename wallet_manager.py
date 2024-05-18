@@ -10,6 +10,10 @@ from wallet_info import WalletInfo
 class WalletManager:
     def __init__(self, config_file: str):
         self.wallets: Dict[str, WalletInfo] = {}
+        if os.path.exists("config.private.json"):
+            config_file = "config.private.json"
+        else:
+            config_file = "config.json"
         self.token: str = ''
         self.load_config(config_file)
 
