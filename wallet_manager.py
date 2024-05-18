@@ -81,7 +81,7 @@ class WalletManager:
 
             first_run = await self.refresh_wallet_info(first_run, width)
             first_run = False
-            countdown = 60  # in seconds
+            countdown = 300  # in seconds
             while countdown > 0:
                 mins, secs = divmod(countdown, 60)
                 time_format = f"Next update in {mins:02d}:{secs:02d}"
