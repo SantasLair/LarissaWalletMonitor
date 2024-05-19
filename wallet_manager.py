@@ -1,9 +1,10 @@
 import aiohttp
 import asyncio
-import datetime
 import os
 import json
 import shutil
+import sqlite3
+from datetime import datetime
 from typing import Dict, Optional
 from wallet_info import WalletInfo
 
@@ -16,6 +17,7 @@ class WalletManager:
             config_file = "config.json"
         self.token: str = ''
         self.load_config(config_file)
+        self.initialize_db()
 
     def load_config(self, config_file: str) -> None:
         # Load the configuration from a file.
@@ -26,6 +28,20 @@ class WalletManager:
                 wallet_id = node["walletID"]
                 wallet_name = node["walletNodeName"]
                 self.wallets[wallet_id] = WalletInfo(wallet_id, wallet_name)
+
+    def initialize_db(self):
+        conn = sqlite3.connect('wallet_monitor.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS wallet_updates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            wallet_id TEXT NOT NULL,
+            unclaimed_earnings REAL NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        conn.commit()
+        conn.close()                
 
     @staticmethod
     def clear_screen() -> None:
@@ -48,6 +64,20 @@ class WalletManager:
             else:
                 print(f"Failed for node {wallet_info.wallet_name} with status code:", response.status)
             return None
+        
+    # Keep track of history in a database
+    def append_wallet_history(self, wallet_id, unclaimed_earnings):
+        conn = sqlite3.connect('wallet_monitor.db')
+        cursor = conn.cursor()
+        
+        # Insert the new data with the current timestamp
+        cursor.execute('''
+        INSERT INTO wallet_updates (wallet_id, unclaimed_earnings, updated_at)
+        VALUES (?, ?, ?)
+        ''', (wallet_id, unclaimed_earnings, datetime.now()))
+        
+        conn.commit()
+        conn.close()        
 
     async def refresh_wallet_info(self, first_run: bool, width: int) -> bool:
         # Fetch wallet earnings and update the display
@@ -58,13 +88,15 @@ class WalletManager:
             total = 0.0
             self.clear_screen()
             print("=" * width)
-            print(f"Last Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".center(width))
+            print(f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}".center(width))
             print("=" * width)
 
             for wallet_info, current_earning in zip(self.wallets.values(), results):
                 if current_earning is not None:
                     wallet_info.update_earnings(current_earning)
-                    wallet_info.display_earnings()
+                    wallet_info.display_earnings(80)
+                    if not wallet_info.gain_is_old:
+                        self.append_wallet_history(wallet_info.wallet_id, wallet_info.current_earning)
                     total += current_earning
 
             print("\n" + "=" * width)
@@ -81,7 +113,7 @@ class WalletManager:
 
             first_run = await self.refresh_wallet_info(first_run, width)
             first_run = False
-            countdown = 300  # in seconds
+            countdown = 30  # in seconds
             while countdown > 0:
                 mins, secs = divmod(countdown, 60)
                 time_format = f"Next update in {mins:02d}:{secs:02d}"
