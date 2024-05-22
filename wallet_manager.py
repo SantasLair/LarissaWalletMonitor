@@ -115,7 +115,7 @@ class WalletManager:
                     total += current_earning
 
             print("\n" + "=" * width)
-            print(f"Total unclaimed earnings: {total:.4f}".center(width))
+            print(f"{total:.4f} total unclaimed earnings over {len(self.wallets)} wallets".center(width))
             print("=" * width)
             return first_run
 
