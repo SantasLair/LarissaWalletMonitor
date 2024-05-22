@@ -35,4 +35,4 @@ class WalletInfo:
             else:
                 output += gain_str
         
-        print(output.center(width))
+        print(output)

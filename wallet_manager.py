@@ -18,16 +18,13 @@ class WalletManager:
         self.token: str = ''
         self.load_config(config_file)
         self.initialize_db()
+        asyncio.run(self.fetch_wallet_data())
 
     def load_config(self, config_file: str) -> None:
         # Load the configuration from a file.
         with open(config_file, 'r') as file:
             config = json.load(file)
             self.token = config["token"]
-            for node in config["nodes"]:
-                wallet_id = node["walletID"]
-                wallet_name = node["walletNodeName"]
-                self.wallets[wallet_id] = WalletInfo(wallet_id, wallet_name)
 
     def initialize_db(self):
         conn = sqlite3.connect('wallet_monitor.db')
@@ -48,8 +45,26 @@ class WalletManager:
         # Clear the terminal screen.
         os.system('cls' if os.name == 'nt' else 'clear')
 
+    async def fetch_wallet_data(self) -> None:
+        url = "https://api.larissa.network/api/v1/wallet/getWallets"
+        headers = {"Authorization": f"Bearer {self.token}"}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if data['status']:
+                        for wallet in data['data']:
+                            wallet_id = wallet["walletID"]
+                            wallet_name = wallet["walletNodeName"]
+                            self.wallets[wallet_id] = WalletInfo(wallet_id, wallet_name)
+                    else:
+                        print(f"Failed to fetch wallet data: {data['message']}")
+                else:
+                    print(f"Failed to fetch wallet data with status code:", response.status)
+
     async def get_wallet_earnings(self, session: aiohttp.ClientSession, wallet_info: WalletInfo) -> Optional[float]:
-        # Get wallet earnings (requies a POST)
+        # Get wallet earnings (requires a POST)
         url = "https://api.larissa.network/api/v1/key/keyUnclaimedEarning"
         headers = {"Authorization": f"Bearer {self.token}"}
         body = {"walletID": wallet_info.wallet_id}
@@ -120,3 +135,7 @@ class WalletManager:
                 print(time_format.center(width), end="\r")
                 await asyncio.sleep(1)
                 countdown -= 1
+
+if __name__ == "__main__":
+    manager = WalletManager("config.json")
+    asyncio.run(manager.run())
