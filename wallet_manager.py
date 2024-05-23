@@ -4,7 +4,7 @@ import os
 import json
 import shutil
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 from wallet_info import WalletInfo
 
@@ -34,6 +34,7 @@ class WalletManager:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             wallet_id TEXT NOT NULL,
             unclaimed_earnings REAL NOT NULL,
+            gain REAL NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
@@ -81,15 +82,15 @@ class WalletManager:
             return None
         
     # Keep track of history in a database
-    def append_wallet_history(self, wallet_id, unclaimed_earnings):
+    def append_wallet_history(self, wallet_id, unclaimed_earnings, gain):
         conn = sqlite3.connect('wallet_monitor.db')
         cursor = conn.cursor()
         
         # Insert the new data with the current timestamp
         cursor.execute('''
-        INSERT INTO wallet_updates (wallet_id, unclaimed_earnings, updated_at)
-        VALUES (?, ?, ?)
-        ''', (wallet_id, unclaimed_earnings, datetime.now()))
+        INSERT INTO wallet_updates (wallet_id, unclaimed_earnings, gain, updated_at)
+        VALUES (?, ?, ?, ?)
+        ''', (wallet_id, unclaimed_earnings, gain, datetime.now()))
         
         conn.commit()
         conn.close()        
@@ -110,8 +111,8 @@ class WalletManager:
                 if current_earning is not None:
                     wallet_info.update_earnings(current_earning)
                     wallet_info.display_earnings(80)
-                    if not wallet_info.gain_is_old:
-                        self.append_wallet_history(wallet_info.wallet_id, wallet_info.current_earning)
+                    gain = current_earning - wallet_info.previous_earning if wallet_info.previous_earning > 0 else 0.0
+                    self.append_wallet_history(wallet_info.wallet_id, wallet_info.current_earning, gain)
                     total += current_earning
 
             print("\n" + "=" * width)
@@ -120,7 +121,7 @@ class WalletManager:
             return first_run
 
     async def run(self) -> None:
-        #Run the main loop to fetch and display wallet earnings.
+        # Run the main loop to fetch and display wallet earnings.
         first_run = True
         while True:
             terminal_size = shutil.get_terminal_size((80, 20))
@@ -128,7 +129,13 @@ class WalletManager:
 
             first_run = await self.refresh_wallet_info(first_run, width)
             first_run = False
-            countdown = 30  # in seconds
+
+            # Calculate the time to sleep until the next 5-minute interval
+            now = datetime.now()
+            next_update = (now + timedelta(minutes=5 - now.minute % 5)).replace(second=0, microsecond=0)
+            sleep_duration = (next_update - now).total_seconds()
+            
+            countdown = int(sleep_duration)
             while countdown > 0:
                 mins, secs = divmod(countdown, 60)
                 time_format = f"Next update in {mins:02d}:{secs:02d}"

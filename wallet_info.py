@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from termcolor import colored
 
 class WalletInfo:
@@ -8,31 +9,54 @@ class WalletInfo:
         self.previous_earning = 0.0
         self.gain_amount = 0.0
         self.gain_is_old = False
+        self.gain_history = []  # List to store tuples of (timestamp, gain)
 
     def update_earnings(self, new_earning: float) -> None:
         """Update the earnings for this wallet."""
-        if new_earning == self.previous_earning:
-            self.gain_is_old = True
-            return
-
-        if self.previous_earning > 0:
+        now = datetime.now()
+        if self.previous_earning == 0.0:
+            self.gain_amount = 0.0
+        else:
             self.gain_amount = new_earning - self.previous_earning
-            self.gain_is_old = False
-
+        
         self.previous_earning = self.current_earning
         self.current_earning = new_earning
+        self.gain_history.append((now, self.gain_amount))
+        self.clean_old_gains(now)
+
+    def clean_old_gains(self, current_time: datetime) -> None:
+        """Remove gain data older than 24 hours."""
+        cutoff_time = current_time - timedelta(hours=24)
+        self.gain_history = [(time, gain) for time, gain in self.gain_history if time >= cutoff_time]
+
+    def calculate_24h_gain(self) -> float:
+        """Calculate total gain over the past 24 hours."""
+        return sum(gain for time, gain in self.gain_history)
+
+    def calculate_average_hourly_gain(self) -> float:
+        """Calculate average hourly gain over the past 24 hours."""
+        if not self.gain_history:
+            return 0.0
+
+        hours = 24
+        return self.calculate_24h_gain() / hours
 
     def display_earnings(self, width) -> None:
         """Display the earnings in a formatted way."""
         name_width = 30
         name_str = self.wallet_name.ljust(name_width)
         output = f"{name_str}: {self.current_earning:.4f}"
-        
+
         if self.gain_amount != 0:
             gain_str = f" (+{self.gain_amount:.4f})"
             if self.gain_is_old:
                 output += colored(gain_str, "yellow")
             else:
                 output += gain_str
-        
+
+        total_24h_gain = self.calculate_24h_gain()
+        average_hourly_gain = self.calculate_average_hourly_gain()
+
+        output += f" | 24h Gain: {total_24h_gain:.4f} | Avg Gain/hr: {average_hourly_gain:.4f}"
+
         print(output)
