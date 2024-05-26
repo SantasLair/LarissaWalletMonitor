@@ -4,3 +4,4 @@
 .venv
 .idea
 config.private.json
+__pycache__
