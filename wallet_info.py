@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from termcolor import colored
 
 class WalletInfo:
     def __init__(self, wallet_id: str, wallet_name: str):
@@ -40,23 +39,3 @@ class WalletInfo:
 
         hours = 24
         return self.calculate_24h_gain() / hours
-
-    def display_earnings(self, width) -> None:
-        """Display the earnings in a formatted way."""
-        name_width = 30
-        name_str = self.wallet_name.ljust(name_width)
-        output = f"{name_str}: {self.current_earning:.4f}"
-
-        if self.gain_amount != 0:
-            gain_str = f" (+{self.gain_amount:.4f})"
-            if self.gain_is_old:
-                output += colored(gain_str, "yellow")
-            else:
-                output += gain_str
-
-        total_24h_gain = self.calculate_24h_gain()
-        average_hourly_gain = self.calculate_average_hourly_gain()
-
-        output += f" | 24h Gain: {total_24h_gain:.4f} | Avg Gain/hr: {average_hourly_gain:.4f}"
-
-        print(output)

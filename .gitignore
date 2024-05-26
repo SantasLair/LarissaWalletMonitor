@@ -1,4 +1,6 @@
 .vs
 *.pyc
 *.db
+.venv
+.idea
 config.private.json
