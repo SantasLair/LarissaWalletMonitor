@@ -46,7 +46,7 @@ class WalletManager:
         # Clear the terminal screen.
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    async def fetch_wallet_data(self) -> None:
+    async def get_wallets(self) -> None:
         url = "https://api.larissa.network/api/v1/wallet/getWallets"
         headers = {"Authorization": f"Bearer {self.token}"}
 
@@ -142,7 +142,3 @@ class WalletManager:
                 print(time_format.center(width), end="\r")
                 await asyncio.sleep(1)
                 countdown -= 1
-
-if __name__ == "__main__":
-    manager = WalletManager("config.json")
-    asyncio.run(manager.run())
