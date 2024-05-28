@@ -54,7 +54,7 @@ class Wallet:
 
         # If either snapshot is missing, return None
         if start_snapshot is None or end_snapshot is None:
-            return None
+            return 0.0
 
         return end_snapshot.balance - start_snapshot.balance
 
